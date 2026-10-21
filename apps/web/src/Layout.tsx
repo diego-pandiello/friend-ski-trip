@@ -1,16 +1,22 @@
-import { Link, Outlet } from "react-router";
+import { MountainSnow } from "lucide-react";
+import { Link, Outlet, ScrollRestoration } from "react-router";
+import { Container } from "./components/ui.tsx";
 
 export function Layout() {
   return (
-    <div className="mx-auto flex min-h-dvh max-w-xl flex-col">
-      <header className="sticky top-0 z-10 bg-slate-900 px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] text-white">
-        <Link to="/" className="text-lg font-semibold">
-          ⛷️ Ski Friends
-        </Link>
+    <div className="flex min-h-dvh flex-col">
+      <header className="sticky top-0 z-30 border-b border-line bg-white/90 pt-[env(safe-area-inset-top)] backdrop-blur">
+        <Container className="flex h-16 items-center">
+          <Link to="/" className="flex items-center gap-1.5 text-accent">
+            <MountainSnow className="size-7" strokeWidth={2.25} aria-hidden />
+            <span className="text-[22px] font-extrabold tracking-tight">skifriends</span>
+          </Link>
+        </Container>
       </header>
-      <main className="flex-1 px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+      <main className="flex-1">
         <Outlet />
       </main>
+      <ScrollRestoration />
     </div>
   );
 }

@@ -1,9 +1,10 @@
 import type { DestinationDetail } from "@ski/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Sparkles } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { Navigate, useNavigate, useParams } from "react-router";
 import { api } from "../api.ts";
-import { Button, ErrorMessage, Field, Input, PageTitle } from "../components/ui.tsx";
+import { Button, Container, ErrorMessage, Field, Input, PageHeader } from "../components/ui.tsx";
 import { useParticipant } from "../participant.ts";
 
 export function NewDestinationPage() {
@@ -34,23 +35,24 @@ export function NewDestinationPage() {
   }
 
   return (
-    <>
-      <PageTitle back={`/t/${tripId}`}>Nuevo destino</PageTitle>
-      <form onSubmit={submit} className="space-y-4">
+    <Container narrow className="py-6 md:py-10">
+      <PageHeader back={`/t/${tripId}`} title="Nuevo destino" subtitle="Dos enlaces y nosotros hacemos el resto." />
+      <form onSubmit={submit} className="space-y-6">
         <Field label="Enlace de Google Maps" hint="Abre la estación en Google Maps, pulsa Compartir y pega aquí el enlace.">
           <Input type="url" inputMode="url" value={mapsUrl} onChange={(e) => setMapsUrl(e.target.value)} placeholder="https://maps.app.goo.gl/…" required />
         </Field>
         <Field label="Web con el precio del forfait">
           <Input type="url" inputMode="url" value={forfaitUrl} onChange={(e) => setForfaitUrl(e.target.value)} placeholder="https://…" required />
         </Field>
-        <p className="text-sm text-slate-500">
-          El nombre y el tiempo en coche desde Gijón se calculan solos. Podrás corregirlos después.
+        <p className="flex gap-2 rounded-2xl bg-soft p-4 text-[15px] text-muted">
+          <Sparkles className="mt-0.5 size-4.5 shrink-0 text-accent" aria-hidden />
+          El nombre, el tiempo en coche desde Gijón y el precio del forfait se rellenan solos. Podrás corregirlos después.
         </p>
         <ErrorMessage error={create.error} />
-        <Button type="submit" className="w-full" disabled={create.isPending}>
+        <Button type="submit" className="w-full" loading={create.isPending}>
           Añadir destino
         </Button>
       </form>
-    </>
+    </Container>
   );
 }

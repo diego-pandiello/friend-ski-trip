@@ -3,14 +3,19 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 import { useNavigate, useParams } from "react-router";
 import { api } from "../api.ts";
-import { Button, ConfirmButton, ErrorMessage, Field, Input, Loading, PageTitle } from "../components/ui.tsx";
+import { Button, ConfirmButton, Container, ErrorMessage, Field, Input, Loading, PageHeader } from "../components/ui.tsx";
 import { useDestination } from "./DestinationPage.tsx";
 
 export function EditDestinationPage() {
   const { destinationId = "" } = useParams();
   const destination = useDestination(destinationId);
   if (destination.isPending) return <Loading />;
-  if (destination.error) return <ErrorMessage error={destination.error} />;
+  if (destination.error)
+    return (
+      <Container narrow className="py-8">
+        <ErrorMessage error={destination.error} />
+      </Container>
+    );
   return <EditDestinationForm destination={destination.data} />;
 }
 
@@ -58,29 +63,29 @@ function EditDestinationForm({ destination: d }: { destination: DestinationDetai
   }
 
   return (
-    <>
-      <PageTitle back={`/d/${d.id}`}>Editar destino</PageTitle>
-      <form onSubmit={submit} className="space-y-4">
+    <Container narrow className="py-6 md:py-10">
+      <PageHeader back={`/d/${d.id}`} title="Editar destino" />
+      <form onSubmit={submit} className="space-y-6">
         <Field label="Nombre">
           <Input value={name} onChange={(e) => setName(e.target.value)} maxLength={120} />
         </Field>
         <Field label="Tiempo en coche desde Gijón">
           <div className="grid grid-cols-2 gap-3">
-            <Input type="number" inputMode="numeric" min={0} value={hours} onChange={(e) => setHours(e.target.value)} placeholder="horas" aria-label="Horas" />
-            <Input type="number" inputMode="numeric" min={0} max={59} value={minutes} onChange={(e) => setMinutes(e.target.value)} placeholder="minutos" aria-label="Minutos" />
+            <Input type="number" inputMode="numeric" min={0} value={hours} onChange={(e) => setHours(e.target.value)} placeholder="Horas" aria-label="Horas" />
+            <Input type="number" inputMode="numeric" min={0} max={59} value={minutes} onChange={(e) => setMinutes(e.target.value)} placeholder="Minutos" aria-label="Minutos" />
           </div>
         </Field>
-        <Field label={`Precio del forfait por persona (${d.trip.skiDays} días), en €`}>
+        <Field label={`Forfait por persona, ${d.trip.skiDays} días (€)`}>
           <Input inputMode="decimal" value={forfait} onChange={(e) => setForfait(e.target.value)} placeholder="Ej. 245" />
         </Field>
         <ErrorMessage error={save.error ?? remove.error} />
-        <Button type="submit" className="w-full" disabled={save.isPending}>
+        <Button type="submit" variant="dark" className="w-full" loading={save.isPending}>
           Guardar
         </Button>
-        <ConfirmButton onConfirm={() => remove.mutate()} disabled={remove.isPending} confirmLabel="Sí, borrar el destino">
+        <ConfirmButton onConfirm={() => remove.mutate()} loading={remove.isPending} confirmLabel="Sí, borrar el destino">
           Borrar destino
         </ConfirmButton>
       </form>
-    </>
+    </Container>
   );
 }

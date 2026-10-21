@@ -56,11 +56,14 @@ export function accommodationView(a: AccommodationRow, trip: TripRow, forfaitPri
 export function destinationSummary(
   d: DestinationRow,
   trip: TripRow,
-  accs: { totalPrice: number | null }[],
+  accs: { totalPrice: number | null; imageUrl: string | null }[],
 ): DestinationSummary {
   const combos = accs
     .map((a) => comboPrice(d.forfaitPrice, pricePerPerson(a.totalPrice, trip.travelers)))
     .filter((p): p is number => p != null);
+  const cover = accs
+    .filter((a) => a.imageUrl)
+    .sort((a, b) => (a.totalPrice ?? Infinity) - (b.totalPrice ?? Infinity))[0];
   return {
     id: d.id,
     name: d.name,
@@ -72,6 +75,7 @@ export function destinationSummary(
     accommodationCount: accs.length,
     priceMin: combos.length ? Math.min(...combos) : null,
     priceMax: combos.length ? Math.max(...combos) : null,
+    coverImageUrl: cover?.imageUrl ?? null,
     status: d.status,
     error: d.error,
     createdBy: d.createdBy,

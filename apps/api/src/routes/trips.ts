@@ -27,7 +27,11 @@ tripsRoutes.get("/:id", async (c) => {
     .orderBy(asc(destinations.createdAt));
   const accs = dests.length
     ? await db
-        .select({ destinationId: accommodations.destinationId, totalPrice: accommodations.totalPrice })
+        .select({
+          destinationId: accommodations.destinationId,
+          totalPrice: accommodations.totalPrice,
+          imageUrl: accommodations.imageUrl,
+        })
         .from(accommodations)
         .where(inArray(accommodations.destinationId, dests.map((d) => d.id)))
     : [];

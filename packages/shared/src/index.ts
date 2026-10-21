@@ -118,6 +118,8 @@ export type DestinationSummary = Extraction & {
   accommodationCount: number;
   priceMin: number | null;
   priceMax: number | null;
+  /** Foto de portada: la del alojamiento más barato que tenga foto. */
+  coverImageUrl: string | null;
 };
 
 export type TripDetail = TripSummary & { destinations: DestinationSummary[] };

@@ -1,9 +1,20 @@
 import { tripDays, type TripSummary } from "@ski/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { Navigate, useNavigate, useParams } from "react-router";
 import { api } from "../../api.ts";
-import { Button, ConfirmButton, ErrorMessage, Field, Input, Loading, PageTitle, Textarea } from "../../components/ui.tsx";
+import {
+  Button,
+  ConfirmButton,
+  Container,
+  ErrorMessage,
+  Field,
+  ImagePicker,
+  Input,
+  Loading,
+  PageHeader,
+  Textarea,
+} from "../../components/ui.tsx";
 import { resizeImage } from "../../image.ts";
 import { useAdminSession } from "./AdminPage.tsx";
 
@@ -29,7 +40,12 @@ export function TripFormPage() {
 
   if (session.isPending || (tripId && trip.isPending)) return <Loading />;
   if (!session.data?.admin) return <Navigate to="/admin" replace />;
-  if (trip.error) return <ErrorMessage error={trip.error} />;
+  if (trip.error)
+    return (
+      <Container narrow className="py-8">
+        <ErrorMessage error={trip.error} />
+      </Container>
+    );
   return <TripForm trip={trip.data} />;
 }
 
@@ -37,20 +53,11 @@ function TripForm({ trip }: { trip?: TripSummary }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [form, setForm] = useState<FormState>(
-    trip
-      ? { ...trip, skiDays: String(trip.skiDays), travelers: String(trip.travelers) }
-      : empty,
+    trip ? { ...trip, skiDays: String(trip.skiDays), travelers: String(trip.travelers) } : empty,
   );
   const [photo, setPhoto] = useState<File | null>(null);
   const [removePhoto, setRemovePhoto] = useState(false);
-  const [preview, setPreview] = useState<string | null>(trip?.photoUrl ?? null);
-
-  useEffect(() => {
-    if (!photo) return;
-    const url = URL.createObjectURL(photo);
-    setPreview(url);
-    return () => URL.revokeObjectURL(url);
-  }, [photo]);
+  const [resizing, setResizing] = useState(false);
 
   const days = form.startDate && form.endDate && form.endDate > form.startDate ? tripDays(form.startDate, form.endDate) : null;
 
@@ -79,9 +86,7 @@ function TripForm({ trip }: { trip?: TripSummary }) {
     onSuccess: done,
   });
 
-  const [resizing, setResizing] = useState(false);
-  async function pickPhoto(file: File | undefined) {
-    if (!file) return;
+  async function pickPhoto(file: File) {
     setResizing(true);
     try {
       setPhoto(await resizeImage(file));
@@ -101,9 +106,21 @@ function TripForm({ trip }: { trip?: TripSummary }) {
   }
 
   return (
-    <>
-      <PageTitle back="/admin">{trip ? "Editar viaje" : "Nuevo viaje"}</PageTitle>
-      <form onSubmit={submit} className="space-y-4">
+    <Container narrow className="py-6 md:py-10">
+      <PageHeader back="/admin" title={trip ? "Editar viaje" : "Nuevo viaje"} />
+      <form onSubmit={submit} className="space-y-6">
+        <ImagePicker
+          label="Foto de portada"
+          file={photo}
+          currentUrl={removePhoto ? null : trip?.photoUrl}
+          onPick={pickPhoto}
+          onClear={() => {
+            setPhoto(null);
+            setRemovePhoto(true);
+          }}
+          busy={resizing}
+          aspect="aspect-[4/3]"
+        />
         <Field label="Título">
           <Input value={form.title} onChange={set("title")} required maxLength={120} />
         </Field>
@@ -120,47 +137,22 @@ function TripForm({ trip }: { trip?: TripSummary }) {
         </div>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Días de esquí" hint={days ? `El viaje dura ${days} días` : undefined}>
-            <Input
-              type="number"
-              inputMode="numeric"
-              min={1}
-              max={days ?? undefined}
-              value={form.skiDays}
-              onChange={set("skiDays")}
-              required
-            />
+            <Input type="number" inputMode="numeric" min={1} max={days ?? undefined} value={form.skiDays} onChange={set("skiDays")} required />
           </Field>
           <Field label="Viajeros">
             <Input type="number" inputMode="numeric" min={1} value={form.travelers} onChange={set("travelers")} required />
           </Field>
         </div>
-        <Field label="Foto">
-          {preview && !removePhoto && <img src={preview} alt="" className="mb-2 aspect-video w-full rounded-xl object-cover" />}
-          <Input type="file" accept="image/*" onChange={(e) => pickPhoto(e.target.files?.[0])} />
-        </Field>
-        {preview && !removePhoto && (
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => {
-              setPhoto(null);
-              setPreview(null);
-              setRemovePhoto(true);
-            }}
-          >
-            Quitar foto
-          </Button>
-        )}
         <ErrorMessage error={save.error ?? remove.error} />
-        <Button type="submit" className="w-full" disabled={save.isPending || resizing}>
+        <Button type="submit" variant="dark" className="w-full" loading={save.isPending} disabled={resizing}>
           {trip ? "Guardar cambios" : "Crear viaje"}
         </Button>
         {trip && (
-          <ConfirmButton onConfirm={() => remove.mutate()} disabled={remove.isPending} confirmLabel="Sí, borrar el viaje">
+          <ConfirmButton onConfirm={() => remove.mutate()} loading={remove.isPending} confirmLabel="Sí, borrar el viaje">
             Borrar viaje
           </ConfirmButton>
         )}
       </form>
-    </>
+    </Container>
   );
 }

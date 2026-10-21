@@ -1,9 +1,11 @@
 import type { TripSummary } from "@ski/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ChevronRight, LogOut, Plus } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router";
 import { api } from "../../api.ts";
-import { Button, ButtonLink, Card, ErrorMessage, Field, Input, Loading, PageTitle } from "../../components/ui.tsx";
+import { Photo } from "../../components/Photo.tsx";
+import { Button, ButtonLink, Container, ErrorMessage, Field, Input, Loading, PageHeader, stagger } from "../../components/ui.tsx";
 import { formatDateRange } from "../../format.ts";
 
 export function useAdminSession() {
@@ -13,7 +15,12 @@ export function useAdminSession() {
 export function AdminPage() {
   const session = useAdminSession();
   if (session.isPending) return <Loading />;
-  if (session.error) return <ErrorMessage error={session.error} />;
+  if (session.error)
+    return (
+      <Container narrow className="py-8">
+        <ErrorMessage error={session.error} />
+      </Container>
+    );
   return session.data.admin ? <TripList /> : <LoginForm />;
 }
 
@@ -32,27 +39,21 @@ function LoginForm() {
   }
 
   return (
-    <>
-      <PageTitle>Administración</PageTitle>
-      <form onSubmit={submit} className="space-y-4">
+    <Container narrow className="py-8 md:py-14">
+      <PageHeader title="Administración" subtitle="Acceso solo para el organizador." />
+      <form onSubmit={submit} className="space-y-5">
         <Field label="Usuario">
           <Input autoComplete="username" value={user} onChange={(e) => setUser(e.target.value)} required />
         </Field>
         <Field label="Contraseña">
-          <Input
-            type="password"
-            autoComplete="current-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
+          <Input type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
         </Field>
         <ErrorMessage error={login.error} />
-        <Button type="submit" className="w-full" disabled={login.isPending}>
+        <Button type="submit" variant="dark" className="w-full" loading={login.isPending}>
           Entrar
         </Button>
       </form>
-    </>
+    </Container>
   );
 }
 
@@ -65,34 +66,38 @@ function TripList() {
   });
 
   return (
-    <>
-      <PageTitle>Viajes</PageTitle>
-      <div className="space-y-3">
-        <ButtonLink to="/admin/trips/new">+ Nuevo viaje</ButtonLink>
-        {trips.isPending && <Loading />}
-        <ErrorMessage error={trips.error} />
-        {trips.data?.length === 0 && <p className="text-slate-500">Todavía no hay viajes.</p>}
-        {trips.data?.map((t) => (
-          <Link key={t.id} to={`/admin/trips/${t.id}`} className="block">
-            <Card className="flex items-center gap-3">
-              {t.photoUrl ? (
-                <img src={t.photoUrl} alt="" className="size-14 rounded-xl object-cover" />
-              ) : (
-                <div className="grid size-14 place-items-center rounded-xl bg-slate-100 text-2xl">🏔️</div>
-              )}
-              <div className="min-w-0">
+    <Container narrow className="py-8 md:py-14">
+      <div className="flex items-start justify-between gap-4">
+        <PageHeader title="Viajes" subtitle="Crea y gestiona los viajes del grupo." />
+        <button
+          type="button"
+          onClick={() => logout.mutate()}
+          className="mt-2 flex items-center gap-1.5 text-[15px] font-semibold text-muted hover:text-ink"
+        >
+          <LogOut className="size-4" aria-hidden /> Salir
+        </button>
+      </div>
+      <ButtonLink to="/admin/trips/new" variant="dark" className="w-full">
+        <Plus className="size-4" /> Nuevo viaje
+      </ButtonLink>
+      <ErrorMessage error={trips.error} />
+      {trips.data?.length === 0 && <p className="mt-6 text-muted">Todavía no hay viajes.</p>}
+      <ul className="mt-6 divide-y divide-line border-y border-line empty:hidden">
+        {trips.data?.map((t, i) => (
+          <li key={t.id} className="animate-rise" style={stagger(i)}>
+            <Link to={`/admin/trips/${t.id}`} className="flex items-center gap-4 py-4 transition hover:bg-soft/70">
+              <Photo src={t.photoUrl} aspect="aspect-square" className="w-16 shrink-0 rounded-xl" />
+              <div className="min-w-0 flex-1">
                 <p className="truncate font-semibold">{t.title}</p>
-                <p className="text-sm text-slate-500">
+                <p className="text-[15px] text-muted">
                   {formatDateRange(t.startDate, t.endDate)} · {t.travelers} viajeros
                 </p>
               </div>
-            </Card>
-          </Link>
+              <ChevronRight className="size-5 text-muted" aria-hidden />
+            </Link>
+          </li>
         ))}
-        <Button variant="secondary" className="w-full" onClick={() => logout.mutate()}>
-          Cerrar sesión
-        </Button>
-      </div>
-    </>
+      </ul>
+    </Container>
   );
 }

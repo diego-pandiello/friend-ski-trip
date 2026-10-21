@@ -2,41 +2,34 @@ import type { TripSummary } from "@ski/shared";
 import { useQuery } from "@tanstack/react-query";
 import { Link, Navigate } from "react-router";
 import { api } from "../api.ts";
-import { ErrorMessage, Loading, PageTitle } from "../components/ui.tsx";
+import { Photo } from "../components/Photo.tsx";
+import { CardsSkeleton, Container, ErrorMessage, PageHeader, stagger } from "../components/ui.tsx";
 import { formatDateRange } from "../format.ts";
 
 export function LandingPage() {
   const trips = useQuery({ queryKey: ["trips"], queryFn: () => api<TripSummary[]>("/trips") });
 
-  if (trips.isPending) return <Loading />;
-  if (trips.error) return <ErrorMessage error={trips.error} />;
-  if (trips.data.length === 1) return <Navigate to={`/t/${trips.data[0]!.id}`} replace />;
+  if (trips.data?.length === 1) return <Navigate to={`/t/${trips.data[0]!.id}`} replace />;
 
   return (
-    <>
-      <PageTitle>Elige el viaje</PageTitle>
-      {trips.data.length === 0 && <p className="text-slate-500">Todavía no hay ningún viaje.</p>}
-      <div className="space-y-4">
-        {trips.data.map((t) => (
-          <Link key={t.id} to={`/t/${t.id}`} className="block overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
-            <TripCover trip={t} />
-            <div className="p-4">
-              <p className="text-lg font-semibold">{t.title}</p>
-              <p className="text-sm text-slate-500">{formatDateRange(t.startDate, t.endDate)}</p>
-            </div>
+    <Container className="py-8 md:py-12">
+      <PageHeader title="Elige tu viaje" />
+      {trips.isPending && <CardsSkeleton />}
+      <ErrorMessage error={trips.error} />
+      {trips.data?.length === 0 && (
+        <p className="text-muted">Todavía no hay ningún viaje. El organizador lo creará pronto.</p>
+      )}
+      <div className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+        {trips.data?.map((t, i) => (
+          <Link key={t.id} to={`/t/${t.id}`} className="group block animate-rise" style={stagger(i)}>
+            <Photo src={t.photoUrl} aspect="aspect-[4/3]" />
+            <p className="mt-3 text-[17px] font-semibold">{t.title}</p>
+            <p className="text-muted">
+              {formatDateRange(t.startDate, t.endDate)} · {t.travelers} viajeros
+            </p>
           </Link>
         ))}
       </div>
-    </>
-  );
-}
-
-export function TripCover({ trip, className = "" }: { trip: TripSummary; className?: string }) {
-  return trip.photoUrl ? (
-    <img src={trip.photoUrl} alt="" className={`aspect-[16/9] w-full object-cover ${className}`} />
-  ) : (
-    <div className={`grid aspect-[16/9] w-full place-items-center bg-gradient-to-br from-sky-200 to-slate-300 text-5xl ${className}`}>
-      🏔️
-    </div>
+    </Container>
   );
 }

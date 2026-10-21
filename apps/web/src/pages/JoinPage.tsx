@@ -1,9 +1,12 @@
 import type { Participant, TripSummary } from "@ski/shared";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { ChevronRight } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { useNavigate, useParams } from "react-router";
 import { api } from "../api.ts";
-import { Button, Card, ErrorMessage, Field, Input, Loading, PageTitle } from "../components/ui.tsx";
+import { Photo } from "../components/Photo.tsx";
+import { Avatar, Button, Container, ErrorMessage, Field, Input, Loading, stagger } from "../components/ui.tsx";
+import { formatDateRange } from "../format.ts";
 import { useParticipant } from "../participant.ts";
 
 export function JoinPage() {
@@ -35,34 +38,53 @@ export function JoinPage() {
   }
 
   if (trip.isPending || people.isPending) return <Loading />;
-  if (trip.error || people.error) return <ErrorMessage error={trip.error ?? people.error} />;
+  if (trip.error || people.error)
+    return (
+      <Container narrow className="py-8">
+        <ErrorMessage error={trip.error ?? people.error} />
+      </Container>
+    );
 
   return (
-    <>
-      <PageTitle>¿Quién eres?</PageTitle>
-      <p className="-mt-2 mb-4 text-slate-500">{trip.data.title}</p>
+    <Container narrow className="py-8 md:py-14">
+      <div className="flex animate-rise items-center gap-4">
+        <Photo src={trip.data.photoUrl} aspect="aspect-square" className="w-20 shrink-0" />
+        <div className="min-w-0">
+          <p className="truncate text-[17px] font-semibold">{trip.data.title}</p>
+          <p className="text-muted">{formatDateRange(trip.data.startDate, trip.data.endDate)}</p>
+        </div>
+      </div>
+
+      <h1 className="mt-8 text-[26px] font-bold tracking-tight md:text-[32px]">¿Quién eres?</h1>
+      <p className="mt-1 text-muted">Así sabremos quién añade cada destino y alojamiento.</p>
+
       {people.data.length > 0 && (
-        <Card className="mb-6 p-2">
-          <ul className="divide-y divide-slate-100">
-            {people.data.map((p) => (
-              <li key={p.id}>
-                <button type="button" onClick={() => choose(p)} className="flex min-h-12 w-full items-center rounded-lg px-3 text-left active:bg-slate-100">
-                  {p.name}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </Card>
+        <ul className="mt-6 divide-y divide-line border-y border-line">
+          {people.data.map((p, i) => (
+            <li key={p.id} className="animate-rise" style={stagger(i)}>
+              <button
+                type="button"
+                onClick={() => choose(p)}
+                className="flex w-full items-center gap-4 py-3.5 text-left transition hover:bg-soft/70 active:bg-soft"
+              >
+                <Avatar name={p.name} />
+                <span className="flex-1 text-[17px] font-medium">{p.name}</span>
+                <ChevronRight className="size-5 text-muted" aria-hidden />
+              </button>
+            </li>
+          ))}
+        </ul>
       )}
-      <form onSubmit={submit} className="space-y-3">
-        <Field label={people.data.length ? "¿No apareces? Escribe tu nombre" : "Escribe tu nombre"}>
+
+      <form onSubmit={submit} className="mt-8 space-y-4">
+        <Field label={people.data.length ? "¿No apareces? Escribe tu nombre" : "Tu nombre"}>
           <Input value={name} onChange={(e) => setName(e.target.value)} maxLength={60} autoComplete="given-name" required />
         </Field>
         <ErrorMessage error={create.error} />
-        <Button type="submit" className="w-full" disabled={create.isPending}>
+        <Button type="submit" className="w-full" loading={create.isPending}>
           Entrar al viaje
         </Button>
       </form>
-    </>
+    </Container>
   );
 }

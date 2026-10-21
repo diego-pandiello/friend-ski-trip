@@ -3,8 +3,19 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 import { useNavigate, useParams } from "react-router";
 import { api } from "../api.ts";
-import { Button, Card, ConfirmButton, ErrorMessage, Field, Input, Loading, PageTitle, Textarea } from "../components/ui.tsx";
-import { resizeImage } from "../image.ts";
+import {
+  Button,
+  ConfirmButton,
+  Container,
+  ErrorMessage,
+  Field,
+  ImagePicker,
+  Input,
+  Loading,
+  PageHeader,
+  Textarea,
+} from "../components/ui.tsx";
+import { resizeScreenshot } from "./NewAccommodationPage.tsx";
 
 export function EditAccommodationPage() {
   const { accommodationId = "" } = useParams();
@@ -13,7 +24,12 @@ export function EditAccommodationPage() {
     queryFn: () => api<AccommodationView>(`/accommodations/${accommodationId}`),
   });
   if (accommodation.isPending) return <Loading />;
-  if (accommodation.error) return <ErrorMessage error={accommodation.error} />;
+  if (accommodation.error)
+    return (
+      <Container narrow className="py-8">
+        <ErrorMessage error={accommodation.error} />
+      </Container>
+    );
   return <EditAccommodationForm accommodation={accommodation.data} />;
 }
 
@@ -38,6 +54,7 @@ function EditAccommodationForm({ accommodation: a }: { accommodation: Accommodat
 
   const done = async () => {
     await queryClient.invalidateQueries({ queryKey: ["destination", a.destinationId] });
+    await queryClient.invalidateQueries({ queryKey: ["accommodation", a.id] });
     await queryClient.invalidateQueries({ queryKey: ["trip"] });
     navigate(back, { replace: true });
   };
@@ -57,7 +74,7 @@ function EditAccommodationForm({ accommodation: a }: { accommodation: Accommodat
   const upload = useMutation({
     mutationFn: async (file: File) => {
       const body = new FormData();
-      body.set("screenshot", await resizeImage(file, 1568, 0.85));
+      body.set("screenshot", await resizeScreenshot(file));
       return api(`/accommodations/${a.id}/screenshot`, { method: "POST", body });
     },
     onSuccess: done,
@@ -79,18 +96,21 @@ function EditAccommodationForm({ accommodation: a }: { accommodation: Accommodat
   }
 
   return (
-    <>
-      <PageTitle back={back}>Editar alojamiento</PageTitle>
-      <Card className="mb-6 space-y-2">
-        <p className="text-sm text-slate-600">
-          {a.hasScreenshot
-            ? "Este alojamiento ya tiene una captura. Si subes otra, se volverán a extraer los datos."
-            : "Sube una captura del anuncio donde se vea el precio total y se volverán a extraer los datos."}
-        </p>
-        <Input type="file" accept="image/*" aria-label="Subir captura del anuncio" disabled={upload.isPending} onChange={(e) => e.target.files?.[0] && upload.mutate(e.target.files[0])} />
+    <Container narrow className="py-6 md:py-10">
+      <PageHeader back={back} title="Editar alojamiento" subtitle={a.name} />
+
+      <div className="mb-10 space-y-3 rounded-2xl bg-soft p-5">
+        <ImagePicker
+          label={a.hasScreenshot ? "Sustituir la captura del anuncio" : "Añadir una captura del anuncio"}
+          hint="Al subirla se vuelven a extraer los datos, sobre todo el precio total."
+          file={null}
+          onPick={(file) => upload.mutate(file)}
+          busy={upload.isPending}
+        />
         <ErrorMessage error={upload.error} />
-      </Card>
-      <form onSubmit={submit} className="space-y-4">
+      </div>
+
+      <form onSubmit={submit} className="space-y-6">
         <Field label="Nombre">
           <Input value={name} onChange={(e) => setName(e.target.value)} maxLength={200} />
         </Field>
@@ -103,17 +123,17 @@ function EditAccommodationForm({ accommodation: a }: { accommodation: Accommodat
           {numberInput("bathrooms", "Baños")}
         </div>
         <div className="grid grid-cols-2 gap-3">
-          {numberInput("distanceKm", "Distancia a pistas (km)", true)}
-          {numberInput("totalPrice", "Precio total estancia (€)", true)}
+          {numberInput("distanceKm", "A pistas (km)", true)}
+          {numberInput("totalPrice", "Precio total (€)", true)}
         </div>
         <ErrorMessage error={save.error ?? remove.error} />
-        <Button type="submit" className="w-full" disabled={save.isPending}>
+        <Button type="submit" variant="dark" className="w-full" loading={save.isPending}>
           Guardar
         </Button>
-        <ConfirmButton onConfirm={() => remove.mutate()} disabled={remove.isPending} confirmLabel="Sí, borrar el alojamiento">
+        <ConfirmButton onConfirm={() => remove.mutate()} loading={remove.isPending} confirmLabel="Sí, borrar el alojamiento">
           Borrar alojamiento
         </ConfirmButton>
       </form>
-    </>
+    </Container>
   );
 }
