@@ -1,6 +1,7 @@
 import { eq, sql } from "drizzle-orm";
 import { db } from "./db/client.ts";
-import { destinations } from "./db/schema.ts";
+import { destinations, trips } from "./db/schema.ts";
+import { extractForfait } from "./extract/forfait.ts";
 import { driveMinutesFromOrigin, parseMapsUrl, resolveMapsUrl } from "./geo.ts";
 
 /**
@@ -44,7 +45,15 @@ async function processDestination(d: typeof destinations.$inferSelect) {
     errors.push(`No se pudo leer el enlace de Google Maps: ${(err as Error).message}`);
   }
 
-  // TODO: precio del forfait con Claude (pendiente del spike con links reales)
+  try {
+    const [trip] = await db.select().from(trips).where(eq(trips.id, d.tripId));
+    if (!trip) throw new Error("el viaje ya no existe");
+    const forfait = await extractForfait({ url: d.forfaitUrl, ...trip });
+    if (forfait.pricePerPerson == null) errors.push(`No se encontró el precio del forfait: ${forfait.explanation}`);
+    else Object.assign(fields, { forfaitPrice: forfait.pricePerPerson, forfaitDays: trip.skiDays });
+  } catch (err) {
+    errors.push(`No se pudo obtener el precio del forfait: ${(err as Error).message}`);
+  }
 
   await db
     .update(destinations)

@@ -7,9 +7,11 @@
     "start": "node src/index.ts",
     "typecheck": "tsc -p .",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "node --env-file-if-exists=../../.env src/db/migrate.ts"
+    "db:migrate": "node --env-file-if-exists=../../.env src/db/migrate.ts",
+    "try:forfait": "node --env-file-if-exists=../../.env scripts/try-forfait.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.137.0",
     "@hono/node-server": "^2.1.5",
     "@ski/shared": "workspace:*",
     "drizzle-orm": "^0.45.4",

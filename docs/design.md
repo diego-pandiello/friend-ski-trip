@@ -131,7 +131,10 @@ Flujo común:
 **Destino** (sin IA, salvo el forfait)
 - El backend parsea el link de Maps para sacar nombre y coordenadas. Si es un link corto (`maps.app.goo.gl/...`), primero sigue la redirección.
 - El tiempo en coche desde Gijón se calcula con un API de rutas a partir de las coordenadas: OSRM público (sin key) o, si se queda corto, OpenRouteService (gratis con key). En el spike salió Gijón → Saint-Lary 624 km / 7 h 04 min y Gijón → Formigal 586 km / 7 h 06 min. Algo más alto que Google; es una estimación y el campo es editable.
-- Claude obtiene el precio del forfait desde `forfait_url` para `trip.ski_days` días, en las fechas del viaje por si hay temporada alta o baja. Pendiente de probar con links reales.
+- Claude obtiene el precio del forfait desde `forfait_url` para `trip.ski_days` días, en las fechas del viaje por si hay temporada alta o baja.
+  - Spike con N'PY (Piau-Engaly): la página responde 200 y las tablas de precios vienen en el HTML (adulto, niño, estudiante, senior × "Public" / "No Souci"). Ejemplo: adulto 4 días "Public" = 180 €.
+  - Por eso el backend descarga la página, la reduce a texto (unos 9.000 caracteres, céntimos de coste) y se la pasa a Claude con structured outputs, sin necesitar `web_fetch`. Se le pide el **precio adulto, tarifa pública, para `ski_days` días**.
+  - Si la página no se puede descargar o no trae precios (webs que los cargan con JavaScript), queda "Pendiente" y se rellena a mano.
 
 **Alojamiento** (link + captura opcional)
 - El backend intenta descargar la página. Si hay contenido útil (Airbnb), se lo pasa a Claude.
