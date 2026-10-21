@@ -1,0 +1,33 @@
+# Desarrollo local: `docker compose up -d db`
+# App completa (imagen de producción): `docker compose --profile app up --build`
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: ski
+      POSTGRES_PASSWORD: ski
+      POSTGRES_DB: ski
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ski -d ski"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    profiles: ["app"]
+    build: .
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://ski:ski@db:5432/ski
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  db-data:

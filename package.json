@@ -1,0 +1,23 @@
+{
+  "name": "friend-ski-trip",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.34.7",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "pnpm --parallel --filter @ski/api --filter @ski/web dev",
+    "build": "pnpm --filter @ski/web build",
+    "start": "pnpm --filter @ski/api start",
+    "typecheck": "pnpm -r typecheck",
+    "db:up": "docker compose up -d db",
+    "db:generate": "pnpm --filter @ski/api db:generate",
+    "db:migrate": "pnpm --filter @ski/api db:migrate"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  }
+}
