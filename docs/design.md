@@ -193,7 +193,7 @@ Criterio: **un solo lenguaje (TypeScript)** en todo el monorepo, con tipos y val
 | ORM / migraciones | **Drizzle ORM + drizzle-kit** | Esquema en TypeScript, SQL explícito y migraciones versionadas en el repo. |
 | Validación | **zod** en `packages/shared` | Los mismos schemas para formularios, API y la salida de Claude. |
 | IA | **@anthropic-ai/sdk** (`web_fetch`, `web_search`, structured outputs) | Requisito. |
-| Base de datos | **PostgreSQL 17** | Recurso nativo de Coolify en producción; la misma imagen `postgres:17` en el `docker-compose` local. |
+| Base de datos | **PostgreSQL 18** | Recurso nativo de Coolify en producción; la misma imagen `postgres:18` en el `docker-compose` local. |
 | Despliegue | Un `Dockerfile` multi-stage en la raíz (build web + api → imagen Node) | Coolify construye desde el repo y sirve la app en `https://ski-friends.pandiello.dev` (TLS automático). Las migraciones se aplican al arrancar. |
 
 Alternativa descartada: Next.js o SvelteKit full-stack. Sería igual de simple, pero mezcla frontend y backend en un único paquete, y queremos la separación en partes del monorepo.
@@ -207,7 +207,7 @@ apps/
     src/db/       schema Drizzle + migraciones
 packages/
   shared/         schemas zod + tipos
-docker-compose.yml   postgres:17 (+ app opcional) para local
+docker-compose.yml   postgres:18 (+ app opcional) para local
 Dockerfile
 .env.example         DATABASE_URL, ANTHROPIC_API_KEY, ADMIN_USER, ADMIN_PASSWORD, SESSION_SECRET
 docs/

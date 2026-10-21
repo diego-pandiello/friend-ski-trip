@@ -21,7 +21,7 @@ Requisitos: Node 24+, Docker y pnpm (`corepack enable`).
 ```sh
 cp .env.example .env
 pnpm install
-pnpm db:up          # Postgres 17 en localhost:5432
+pnpm db:up          # Postgres 18 en localhost:5432
 pnpm dev            # API en :3000 (aplica migraciones al arrancar) + Vite en :5173
 ```
 
@@ -40,7 +40,7 @@ Las migraciones se aplican automáticamente al arrancar la API (o con `pnpm db:m
 ## Producción (Coolify)
 
 - **App**: build con el `Dockerfile` de la raíz, puerto `3000`, dominio `ski-friends.pandiello.dev`.
-- **Base de datos**: recurso PostgreSQL 17 de Coolify; su URL interna va en `DATABASE_URL`.
+- **Base de datos**: recurso PostgreSQL 18 de Coolify; su URL interna va en `DATABASE_URL`.
 - **Variables**: las de `.env.example`.
 
 Para probar la imagen de producción en local: `docker compose --profile app up --build`.

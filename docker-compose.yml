@@ -2,7 +2,7 @@
 # App completa (imagen de producción): `docker compose --profile app up --build`
 services:
   db:
-    image: postgres:17
+    image: postgres:18
     environment:
       POSTGRES_USER: ski
       POSTGRES_PASSWORD: ski
@@ -10,7 +10,8 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - db-data:/var/lib/postgresql/data
+      # Desde la 18 la imagen guarda los datos en /var/lib/postgresql/18/docker: se monta el directorio padre
+      - db-data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ski -d ski"]
       interval: 5s
