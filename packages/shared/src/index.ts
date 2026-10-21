@@ -51,6 +51,7 @@ export const accommodationCreate = z.object({
   participantId: z.uuid().optional(),
 });
 
+
 export const accommodationUpdate = z
   .object({
     name: z.string().trim().min(1).max(200),
@@ -123,8 +124,11 @@ export type TripDetail = TripSummary & { destinations: DestinationSummary[] };
 
 export type AccommodationView = Extraction & {
   id: string;
+  destinationId: string;
   sourceUrl: string;
   name: string | null;
+  imageUrl: string | null;
+  hasScreenshot: boolean;
   description: string | null;
   beds: number | null;
   bedrooms: number | null;

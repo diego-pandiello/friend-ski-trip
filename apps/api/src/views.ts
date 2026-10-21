@@ -34,8 +34,11 @@ export function accommodationView(a: AccommodationRow, trip: TripRow, forfaitPri
   const pp = pricePerPerson(a.totalPrice, trip.travelers);
   return {
     id: a.id,
+    destinationId: a.destinationId,
     sourceUrl: a.sourceUrl,
     name: a.name,
+    imageUrl: a.imageUrl,
+    hasScreenshot: a.screenshotMime != null,
     description: a.description,
     beds: a.beds,
     bedrooms: a.bedrooms,

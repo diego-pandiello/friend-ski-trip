@@ -90,13 +90,15 @@ export const accommodations = pgTable("accommodations", {
     .references(() => destinations.id, { onDelete: "cascade" }),
   sourceUrl: text("source_url").notNull(),
   name: text(),
+  /** Primera foto del anuncio (enlazada, no se descarga). */
+  imageUrl: text("image_url"),
   description: text(),
   beds: integer(),
   bedrooms: integer(),
   bathrooms: integer(),
   distanceKm: numeric("distance_km", { precision: 6, scale: 1, mode: "number" }),
   totalPrice: money("total_price"),
-  /** Captura opcional del anuncio; se borra tras la extracción. */
+  /** Captura opcional del anuncio; se conserva para poder reintentar la extracción. */
   screenshot: bytea(),
   screenshotMime: text("screenshot_mime"),
   ...extraction,

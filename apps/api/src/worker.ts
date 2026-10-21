@@ -1,6 +1,8 @@
 import { eq, sql } from "drizzle-orm";
+import type { PgTable } from "drizzle-orm/pg-core";
 import { db } from "./db/client.ts";
-import { destinations, trips } from "./db/schema.ts";
+import { accommodations, destinations, trips } from "./db/schema.ts";
+import { extractAccommodation } from "./extract/accommodation.ts";
 import { extractForfait } from "./extract/forfait.ts";
 import { driveMinutesFromOrigin, parseMapsUrl, resolveMapsUrl } from "./geo.ts";
 
@@ -13,20 +15,19 @@ const POLL_MS = 5_000;
 let running = false;
 let timer: NodeJS.Timeout | undefined;
 
-/** Reclama el siguiente destino pendiente (SKIP LOCKED por si algún día hay varias instancias). */
-async function claimDestination() {
+/** Marca como `processing` el siguiente registro pendiente y lo devuelve (SKIP LOCKED por si hay varias instancias). */
+async function claim<T extends typeof destinations | typeof accommodations>(table: T) {
   const [row] = await db
-    .update(destinations)
+    .update(table as PgTable)
     .set({ status: "processing", error: null })
     .where(
-      eq(
-        destinations.id,
-        sql`(select id from ${destinations} where status = 'pending' order by created_at limit 1 for update skip locked)`,
-      ),
+      sql`id = (select id from ${table} where status = 'pending' order by created_at limit 1 for update skip locked)`,
     )
     .returning();
-  return row;
+  return row as T["$inferSelect"] | undefined;
 }
+
+const message = (err: unknown) => (err instanceof Error ? err.message : String(err));
 
 async function processDestination(d: typeof destinations.$inferSelect) {
   const errors: string[] = [];
@@ -39,10 +40,10 @@ async function processDestination(d: typeof destinations.$inferSelect) {
     try {
       fields.driveMinutes = await driveMinutesFromOrigin(place.lat, place.lng);
     } catch (err) {
-      errors.push(`No se pudo calcular la ruta: ${(err as Error).message}`);
+      errors.push(`No se pudo calcular la ruta: ${message(err)}`);
     }
   } catch (err) {
-    errors.push(`No se pudo leer el enlace de Google Maps: ${(err as Error).message}`);
+    errors.push(`No se pudo leer el enlace de Google Maps: ${message(err)}`);
   }
 
   try {
@@ -52,7 +53,7 @@ async function processDestination(d: typeof destinations.$inferSelect) {
     if (forfait.pricePerPerson == null) errors.push(`No se encontró el precio del forfait: ${forfait.explanation}`);
     else Object.assign(fields, { forfaitPrice: forfait.pricePerPerson, forfaitDays: trip.skiDays });
   } catch (err) {
-    errors.push(`No se pudo obtener el precio del forfait: ${(err as Error).message}`);
+    errors.push(`No se pudo obtener el precio del forfait: ${message(err)}`);
   }
 
   await db
@@ -61,19 +62,56 @@ async function processDestination(d: typeof destinations.$inferSelect) {
     .where(eq(destinations.id, d.id));
 }
 
+async function processAccommodation(a: typeof accommodations.$inferSelect) {
+  const [row] = await db
+    .select({ trip: trips, destination: destinations })
+    .from(destinations)
+    .innerJoin(trips, eq(trips.id, destinations.tripId))
+    .where(eq(destinations.id, a.destinationId));
+  if (!row) return;
+
+  let update: Partial<typeof accommodations.$inferInsert>;
+  try {
+    const { fields, problems } = await extractAccommodation({
+      url: a.sourceUrl,
+      screenshot: a.screenshot && a.screenshotMime ? { data: a.screenshot, mime: a.screenshotMime } : null,
+      ...row.trip,
+      destination: row.destination,
+    });
+    // No pisar con null lo que ya hubiera (p. ej. datos corregidos a mano antes de reintentar)
+    const found = Object.fromEntries(Object.entries(fields).filter(([, v]) => v != null));
+    const error = problems.length ? capitalize(problems.join(". ")) : null;
+    update = { ...found, status: error ? "failed" : "done", error };
+  } catch (err) {
+    update = { status: "failed", error: capitalize(message(err)) };
+  }
+  await db.update(accommodations).set(update).where(eq(accommodations.id, a.id));
+}
+
+const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+async function drainTable<T extends typeof destinations | typeof accommodations>(
+  table: T,
+  process: (row: T["$inferSelect"]) => Promise<void>,
+) {
+  for (let row = await claim(table); row; row = await claim(table)) {
+    const id = row.id;
+    await process(row).catch(async (err) => {
+      console.error("Error en la extracción", id, err);
+      await db
+        .update(table as PgTable)
+        .set({ status: "failed", error: "Error inesperado al extraer los datos" })
+        .where(sql`id = ${id}`);
+    });
+  }
+}
+
 async function drain() {
   if (running) return;
   running = true;
   try {
-    for (let d = await claimDestination(); d; d = await claimDestination()) {
-      await processDestination(d).catch(async (err) => {
-        console.error("Error procesando destino", d.id, err);
-        await db
-          .update(destinations)
-          .set({ status: "failed", error: "Error inesperado al extraer los datos" })
-          .where(eq(destinations.id, d.id));
-      });
-    }
+    await drainTable(destinations, processDestination);
+    await drainTable(accommodations, processAccommodation);
   } finally {
     running = false;
   }
@@ -86,7 +124,9 @@ export function kickWorker() {
 
 export async function startWorker() {
   // Lo que se quedó a medias en un reinicio vuelve a la cola
-  await db.update(destinations).set({ status: "pending" }).where(eq(destinations.status, "processing"));
+  for (const table of [destinations, accommodations]) {
+    await db.update(table as PgTable).set({ status: "pending" }).where(sql`status = 'processing'`);
+  }
   timer = setInterval(kickWorker, POLL_MS);
   timer.unref();
   kickWorker();

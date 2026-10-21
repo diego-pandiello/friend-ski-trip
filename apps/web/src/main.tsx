@@ -7,9 +7,11 @@ import { Layout } from "./Layout.tsx";
 import { AdminPage } from "./pages/admin/AdminPage.tsx";
 import { TripFormPage } from "./pages/admin/TripFormPage.tsx";
 import { DestinationPage } from "./pages/DestinationPage.tsx";
+import { EditAccommodationPage } from "./pages/EditAccommodationPage.tsx";
 import { EditDestinationPage } from "./pages/EditDestinationPage.tsx";
 import { JoinPage } from "./pages/JoinPage.tsx";
 import { LandingPage } from "./pages/LandingPage.tsx";
+import { NewAccommodationPage } from "./pages/NewAccommodationPage.tsx";
 import { NewDestinationPage } from "./pages/NewDestinationPage.tsx";
 import { NotFoundPage } from "./pages/NotFoundPage.tsx";
 import { TripPage } from "./pages/TripPage.tsx";
@@ -28,6 +30,8 @@ const router = createBrowserRouter([
       { path: "/t/:tripId/new-destination", element: <NewDestinationPage /> },
       { path: "/d/:destinationId", element: <DestinationPage /> },
       { path: "/d/:destinationId/edit", element: <EditDestinationPage /> },
+      { path: "/d/:destinationId/new-accommodation", element: <NewAccommodationPage /> },
+      { path: "/a/:accommodationId/edit", element: <EditAccommodationPage /> },
       { path: "/admin", element: <AdminPage /> },
       { path: "/admin/trips/new", element: <TripFormPage /> },
       { path: "/admin/trips/:tripId", element: <TripFormPage /> },

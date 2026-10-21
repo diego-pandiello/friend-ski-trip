@@ -63,7 +63,10 @@ export function DestinationPage() {
 
       <Card className="grid grid-cols-2 gap-3">
         <Stat label="En coche desde Gijón" value={formatDuration(d.driveMinutes)} />
-        <Stat label={`Forfait ${d.trip.skiDays} días`} value={d.forfaitPrice == null ? "Pendiente" : formatEuros(d.forfaitPrice)} />
+        <Stat
+          label={`Forfait ${d.trip.skiDays} días`}
+          value={d.forfaitPrice == null ? "Pendiente" : formatEuros(d.forfaitPrice)}
+        />
         <a href={d.mapsUrl} target="_blank" rel="noreferrer" className="text-sm text-sky-700 underline">
           Ver en Google Maps
         </a>
@@ -73,7 +76,8 @@ export function DestinationPage() {
       </Card>
       {d.forfaitStale && (
         <p className="rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-800">
-          El precio del forfait se calculó para otro número de días de esquí. Reintenta la extracción o corrígelo a mano.
+          El precio del forfait se calculó para otro número de días de esquí. Reintenta la extracción o corrígelo a
+          mano.
         </p>
       )}
 
@@ -83,7 +87,7 @@ export function DestinationPage() {
         {d.accommodations.map((a) => (
           <AccommodationCard key={a.id} accommodation={a} />
         ))}
-        <p className="text-sm text-slate-500">Pronto podrás añadir alojamientos desde Booking o Airbnb.</p>
+        <ButtonLink to={`/d/${d.id}/new-accommodation`}>+ Alojamiento</ButtonLink>
       </section>
     </div>
   );
@@ -99,22 +103,55 @@ function Stat({ label, value }: { label: string; value: string }) {
 }
 
 function AccommodationCard({ accommodation: a }: { accommodation: AccommodationView }) {
+  const queryClient = useQueryClient();
+  const retry = useMutation({
+    mutationFn: () => api(`/accommodations/${a.id}/retry`, { method: "POST" }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["destination", a.destinationId] }),
+  });
+
   return (
-    <Card className="space-y-1">
-      <div className="flex items-start justify-between gap-2">
-        <a href={a.sourceUrl} target="_blank" rel="noreferrer" className="font-semibold">
-          {a.name ?? "Alojamiento"}
-        </a>
-        <ExtractionBadge item={a} />
+    <Card className="space-y-2 overflow-hidden p-0">
+      {a.imageUrl && <img src={a.imageUrl} alt="" loading="lazy" className="aspect-[16/9] w-full object-cover" />}
+      <div className="space-y-1 px-4 pb-4 first:pt-4">
+        <div className="flex items-start justify-between gap-2 pt-1">
+          <a
+            href={a.sourceUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="font-semibold underline-offset-2 hover:underline"
+          >
+            {a.name ?? "Alojamiento"}
+          </a>
+          <ExtractionBadge item={a} />
+        </div>
+        {a.description && <p className="text-sm text-slate-600">{a.description}</p>}
+        <p className="flex flex-wrap gap-x-3 text-sm text-slate-600">
+          <span>🛏️ {a.beds ?? "?"} camas</span>
+          <span>🚪 {a.bedrooms ?? "?"} hab.</span>
+          <span>🛁 {a.bathrooms ?? "?"} baños</span>
+          <span>🎿 {a.distanceKm == null ? "?" : `${a.distanceKm} km`}</span>
+        </p>
+        <p className="text-sm text-slate-600">Alojamiento: {formatEuros(a.pricePerPerson)} / persona</p>
+        <p className="font-medium text-sky-800">Total con forfait: {formatEuros(a.comboPrice)} / persona</p>
+        {a.status === "failed" && a.error && (
+          <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800">{a.error}</p>
+        )}
+        <div className="flex gap-4 pt-1 text-sm">
+          <Link to={`/a/${a.id}/edit`} className="text-sky-700 underline">
+            Editar
+          </Link>
+          {a.status === "failed" && (
+            <button
+              type="button"
+              className="text-sky-700 underline"
+              onClick={() => retry.mutate()}
+              disabled={retry.isPending}
+            >
+              Reintentar
+            </button>
+          )}
+        </div>
       </div>
-      <p className="flex flex-wrap gap-x-3 text-sm text-slate-600">
-        <span>🛏️ {a.beds ?? "?"} camas</span>
-        <span>🚪 {a.bedrooms ?? "?"} hab.</span>
-        <span>🛁 {a.bathrooms ?? "?"} baños</span>
-        <span>🎿 {a.distanceKm == null ? "?" : `${a.distanceKm} km`}</span>
-      </p>
-      <p className="text-sm text-slate-600">Alojamiento: {formatEuros(a.pricePerPerson)} / persona</p>
-      <p className="font-medium text-sky-800">Total con forfait: {formatEuros(a.comboPrice)} / persona</p>
     </Card>
   );
 }

@@ -85,7 +85,8 @@ accommodations
   bathrooms       int  null
   distance_km     numeric null      -- distancia a pistas
   total_price     numeric null      -- estancia completa
-  screenshot      bytea null        -- captura opcional; se borra tras extraer
+  image_url       text  null        -- primera foto del anuncio (JSON-LD), enlazada
+  screenshot      bytea null        -- captura opcional; se conserva para poder reintentar
   screenshot_mime text  null
   status, error, created_by, created_at  (igual que destinations)
 ```
@@ -140,11 +141,15 @@ Flujo común:
 - El backend intenta descargar la página. Si hay contenido útil (Airbnb), se lo pasa a Claude.
 - Si el usuario adjuntó una captura del anuncio, también se envía a Claude como imagen (visión). De ahí sale sobre todo el **precio total** y los datos que falten (todo el anuncio en el caso de Booking).
 - Se le dan a Claude las fechas y el nº de noches del viaje para que distinga el precio por noche del total.
-- La captura se guarda temporalmente en la base de datos para el worker y se borra al terminar.
+- La captura se guarda en la base de datos y se conserva, para que "Reintentar" no pierda el precio. A un alojamiento ya creado se le puede subir una captura desde su pantalla de edición.
+- De la página (Airbnb) se usan también las etiquetas meta y el JSON-LD: nombre, descripción, coordenadas y la primera foto, que sirve de miniatura.
+- El precio total se calcula en código: si es por noche, se multiplica por las noches del viaje; si es total, se comprueba que cubra esas noches.
+- Distancia a pistas: la que mencione el anuncio. Si no menciona ninguna, la distancia en línea recta desde las coordenadas del anuncio al punto del destino en Maps (aproximada).
+- Booking sin captura: nombre aproximado a partir de la URL.
 - Lo que no se consiga extraer queda vacío y se rellena a mano. Sin precio, el alojamiento sale "sin precio" en los totales.
 - Descartado: un navegador headless (Playwright) en el servidor. Añade unos 400 MB a la imagen y Booking suele bloquearlo igualmente.
 
-**Modelo:** `claude-opus-5-5` por defecto, con effort `low`. Para abaratar se puede usar `claude-haiku-5-5`, que sería suficiente para extraer datos. Lo decidimos tras el spike. El volumen es mínimo (decenas de llamadas por viaje), así que el coste es irrelevante en cualquier caso.
+**Modelo:** `claude-haiku-5-5` (configurable con `CLAUDE_MODEL`), con effort `low`. Cada extracción cuesta menos de 0,001 $. Para que Haiku sea fiable, el esquema de salida pone primero la evidencia (fila o texto literal) y después el valor, y el código valida el resultado (días, tipo de tarifa, noches).
 
 **Abuso:** cualquiera con el link puede crear destinos y alojamientos, y eso dispara llamadas a Claude. Mitigación sencilla: un rate limit por IP en los endpoints de creación y un tope de llamadas diarias.
 

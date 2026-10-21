@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { extractStructured } from "./claude.ts";
-import { fetchPageText } from "./page-text.ts";
+import { fetchPage } from "./page-text.ts";
 
 // El orden importa: el modelo genera los campos en este orden, así que primero localiza
 // la fila y después da el precio (con el precio primero, Haiku mezclaba tablas).
@@ -30,7 +30,7 @@ export async function extractForfait(opts: {
   startDate: string;
   endDate: string;
 }): Promise<ForfaitResult> {
-  const text = await fetchPageText(opts.url);
+  const { text } = await fetchPage(opts.url);
   const r = await extractStructured({
     schema: forfaitSchema,
     system: SYSTEM,

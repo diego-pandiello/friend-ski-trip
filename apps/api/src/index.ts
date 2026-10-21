@@ -11,6 +11,7 @@ import { ZodError } from "zod";
 import { db } from "./db/client.ts";
 import { runMigrations } from "./db/migrate.ts";
 import { env } from "./env.ts";
+import { accommodationsRoutes } from "./routes/accommodations.ts";
 import { admin } from "./routes/admin.ts";
 import { destinationsRoutes } from "./routes/destinations.ts";
 import { tripsRoutes } from "./routes/trips.ts";
@@ -27,6 +28,7 @@ api.get("/health", async (c) => {
 api.route("/admin", admin);
 api.route("/trips", tripsRoutes);
 api.route("/", destinationsRoutes);
+api.route("/", accommodationsRoutes);
 app.route("/api", api);
 
 app.onError((err, c) => {
