@@ -24,7 +24,8 @@ export async function startSession(c: Context) {
   const expires = Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000;
   await setSignedCookie(c, COOKIE, String(expires), env.SESSION_SECRET, {
     httpOnly: true,
-    secure: c.req.url.startsWith("https://"),
+    // Detrás del proxy de Coolify (Traefik) la app recibe HTTP; el esquema real viene en X-Forwarded-Proto
+    secure: c.req.header("x-forwarded-proto") === "https" || c.req.url.startsWith("https://"),
     sameSite: "Lax",
     path: "/api",
     expires: new Date(expires),
