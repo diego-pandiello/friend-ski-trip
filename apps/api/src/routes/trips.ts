@@ -4,7 +4,7 @@ import { Hono } from "hono";
 import { db } from "../db/client.ts";
 import { accommodations, destinations, participants, trips } from "../db/schema.ts";
 import { idParam, jsonBody, notFound } from "../http.ts";
-import { destinationSummary, tripColumns, tripView } from "../views.ts";
+import { destinationColumns, destinationSummary, tripColumns, tripView } from "../views.ts";
 
 export const tripsRoutes = new Hono();
 
@@ -21,7 +21,7 @@ tripsRoutes.get("/", async (c) => {
 tripsRoutes.get("/:id", async (c) => {
   const trip = await findTrip(idParam(c));
   const dests = await db
-    .select()
+    .select(destinationColumns)
     .from(destinations)
     .where(eq(destinations.tripId, trip.id))
     .orderBy(asc(destinations.createdAt));

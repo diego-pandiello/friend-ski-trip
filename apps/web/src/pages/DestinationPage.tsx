@@ -79,9 +79,11 @@ export function DestinationPage() {
                 <a href={d.mapsUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1 underline underline-offset-2">
                   <MapPin className="size-4" aria-hidden /> Google Maps
                 </a>
-                <a href={d.forfaitUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1 underline underline-offset-2">
-                  <ExternalLink className="size-4" aria-hidden /> Web del forfait
-                </a>
+                {d.forfaitUrl && (
+                  <a href={d.forfaitUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1 underline underline-offset-2">
+                    <ExternalLink className="size-4" aria-hidden /> Web del forfait
+                  </a>
+                )}
               </div>
             </div>
 

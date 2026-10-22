@@ -34,7 +34,7 @@ export const participantInput = z.object({
 
 export const destinationCreate = z.object({
   mapsUrl: z.url("Pega el enlace de Google Maps"),
-  forfaitUrl: z.url("Pega el enlace de la web del forfait"),
+  forfaitUrl: z.url("El enlace del forfait no es válido").optional(),
   participantId: z.uuid().optional(),
 });
 
@@ -110,7 +110,8 @@ export type DestinationSummary = Extraction & {
   id: string;
   name: string | null;
   mapsUrl: string;
-  forfaitUrl: string;
+  forfaitUrl: string | null;
+  hasForfaitScreenshot: boolean;
   driveMinutes: number | null;
   forfaitPrice: number | null;
   /** El forfait se extrajo con otro nº de días de esquí del que tiene ahora el viaje. */

@@ -3,8 +3,9 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 import { useNavigate, useParams } from "react-router";
 import { api } from "../api.ts";
-import { Button, ConfirmButton, Container, ErrorMessage, Field, Input, Loading, PageHeader } from "../components/ui.tsx";
+import { Button, ConfirmButton, Container, ErrorMessage, Field, ImagePicker, Input, Loading, PageHeader } from "../components/ui.tsx";
 import { useDestination } from "./DestinationPage.tsx";
+import { resizeScreenshot } from "./NewAccommodationPage.tsx";
 
 export function EditDestinationPage() {
   const { destinationId = "" } = useParams();
@@ -49,6 +50,19 @@ function EditDestinationForm({ destination: d }: { destination: DestinationDetai
     },
   });
 
+  const upload = useMutation({
+    mutationFn: async (file: File) => {
+      const body = new FormData();
+      body.set("forfaitScreenshot", await resizeScreenshot(file));
+      return api<DestinationDetail>(`/destinations/${d.id}/forfait-screenshot`, { method: "POST", body });
+    },
+    onSuccess: async (data) => {
+      queryClient.setQueryData(["destination", d.id], data);
+      await queryClient.invalidateQueries({ queryKey: ["trip", d.trip.id] });
+      navigate(`/d/${d.id}`);
+    },
+  });
+
   const remove = useMutation({
     mutationFn: () => api(`/destinations/${d.id}`, { method: "DELETE" }),
     onSuccess: async () => {
@@ -65,6 +79,17 @@ function EditDestinationForm({ destination: d }: { destination: DestinationDetai
   return (
     <Container narrow className="py-6 md:py-10">
       <PageHeader back={`/d/${d.id}`} title="Editar destino" />
+
+      <div className="mb-10 space-y-3 rounded-2xl bg-soft p-5">
+        <ImagePicker
+          label={d.hasForfaitScreenshot ? "Sustituir la captura del forfait" : "Añadir una captura del forfait"}
+          hint={`Al subirla se vuelve a extraer el precio del forfait de adulto para ${d.trip.skiDays} días.`}
+          file={null}
+          onPick={(file) => upload.mutate(file)}
+          busy={upload.isPending}
+        />
+        <ErrorMessage error={upload.error} />
+      </div>
       <form onSubmit={submit} className="space-y-6">
         <Field label="Nombre">
           <Input value={name} onChange={(e) => setName(e.target.value)} maxLength={120} />

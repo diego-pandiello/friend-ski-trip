@@ -7,4 +7,4 @@ if (!url) {
   console.error("Uso: scripts/try-forfait.ts <url> [díasEsquí] [inicio] [fin]");
   process.exit(1);
 }
-console.log(await extractForfait({ url, skiDays: Number(skiDays), startDate, endDate }));
+console.log(await extractForfait({ url, screenshot: null, skiDays: Number(skiDays), startDate, endDate }));

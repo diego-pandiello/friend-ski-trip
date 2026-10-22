@@ -46,14 +46,19 @@ async function processDestination(d: typeof destinations.$inferSelect) {
     errors.push(`No se pudo leer el enlace de Google Maps: ${message(err)}`);
   }
 
-  try {
-    const [trip] = await db.select().from(trips).where(eq(trips.id, d.tripId));
-    if (!trip) throw new Error("el viaje ya no existe");
-    const forfait = await extractForfait({ url: d.forfaitUrl, ...trip });
-    if (forfait.pricePerPerson == null) errors.push(`No se encontró el precio del forfait: ${forfait.explanation}`);
-    else Object.assign(fields, { forfaitPrice: forfait.pricePerPerson, forfaitDays: trip.skiDays });
-  } catch (err) {
-    errors.push(`No se pudo obtener el precio del forfait: ${message(err)}`);
+  // Sin web ni captura del forfait no hay nada que extraer: el precio se puede poner a mano
+  const screenshot =
+    d.forfaitScreenshot && d.forfaitScreenshotMime ? { data: d.forfaitScreenshot, mime: d.forfaitScreenshotMime } : null;
+  if (d.forfaitUrl || screenshot) {
+    try {
+      const [trip] = await db.select().from(trips).where(eq(trips.id, d.tripId));
+      if (!trip) throw new Error("el viaje ya no existe");
+      const forfait = await extractForfait({ url: d.forfaitUrl, screenshot, ...trip });
+      if (forfait.pricePerPerson == null) errors.push(`No se encontró el precio del forfait: ${forfait.explanation}`);
+      else Object.assign(fields, { forfaitPrice: forfait.pricePerPerson, forfaitDays: trip.skiDays });
+    } catch (err) {
+      errors.push(`No se pudo obtener el precio del forfait: ${message(err)}`);
+    }
   }
 
   await db

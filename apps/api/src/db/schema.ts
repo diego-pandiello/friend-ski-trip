@@ -71,7 +71,10 @@ export const destinations = pgTable("destinations", {
     .notNull()
     .references(() => trips.id, { onDelete: "cascade" }),
   mapsUrl: text("maps_url").notNull(),
-  forfaitUrl: text("forfait_url").notNull(),
+  /** Opcionales: web y/o captura con el precio del forfait. */
+  forfaitUrl: text("forfait_url"),
+  forfaitScreenshot: bytea("forfait_screenshot"),
+  forfaitScreenshotMime: text("forfait_screenshot_mime"),
   name: text(),
   lat: doublePrecision(),
   lng: doublePrecision(),

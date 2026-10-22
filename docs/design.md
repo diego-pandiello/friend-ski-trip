@@ -63,7 +63,8 @@ destinations
   id              uuid pk
   trip_id         fk trips  (cascade)
   maps_url        text
-  forfait_url     text
+  forfait_url     text null        -- opcional
+  forfait_screenshot bytea null     -- captura opcional con el precio (+ forfait_screenshot_mime)
   name            text null         -- del link de Maps
   lat, lng        double null       -- del link de Maps
   drive_minutes   int  null         -- ruta calculada desde Gijón
@@ -105,7 +106,7 @@ Si el admin cambia las fechas o `ski_days` de un viaje, los precios ya extraído
 | `/` | Lista de viajes (tarjetas con foto). Si hay uno solo, redirige. |
 | `/t/:tripId/join` | "¿Quién eres?": lista de nombres + "Soy nuevo" (input). Se salta si ya hay un participante en `localStorage`. |
 | `/t/:tripId` | Cabecera con foto, fechas, días de esquí, descripción y nº viajeros. Tarjetas de destino: nombre, 🚗 tiempo, 💶 rango €/persona y nº de alojamientos. Botón **+ Destino**. |
-| `/t/:tripId/new-destination` | 2 inputs: link de Google Maps y link del forfait. Al enviar se crea en estado `pending` y vuelve al viaje. |
+| `/t/:tripId/new-destination` | Link de Google Maps y, opcionales, link y/o captura del precio del forfait. Al enviar se crea en estado `pending` y vuelve al viaje. |
 | `/d/:destinationId` | Info del destino (link a Maps y al forfait, precio del forfait, días). Lista de alojamientos con camas, habitaciones, baños, distancia, €/persona del alojamiento y **total €/persona**, ordenada por total. Botón **+ Alojamiento**. |
 | `/d/:destinationId/new-accommodation` | Link de booking.com o Airbnb, más una **captura opcional** del anuncio con el precio (input de imagen; en el móvil abre la galería). |
 | editar destino / alojamiento | Formulario con los campos extraídos, para corregirlos. Botón **Borrar** (con confirmación en la propia UI). |
@@ -132,7 +133,7 @@ Flujo común:
 **Destino** (sin IA, salvo el forfait)
 - El backend parsea el link de Maps para sacar nombre y coordenadas. Si es un link corto (`maps.app.goo.gl/...`), primero sigue la redirección.
 - El tiempo en coche desde Gijón se calcula con un API de rutas a partir de las coordenadas: OSRM público (sin key) o, si se queda corto, OpenRouteService (gratis con key). En el spike salió Gijón → Saint-Lary 624 km / 7 h 04 min y Gijón → Formigal 586 km / 7 h 06 min. Algo más alto que Google; es una estimación y el campo es editable.
-- Claude obtiene el precio del forfait desde `forfait_url` para `trip.ski_days` días, en las fechas del viaje por si hay temporada alta o baja.
+- Claude obtiene el precio del forfait desde `forfait_url` y/o la captura para `trip.ski_days` días, en las fechas del viaje por si hay temporada alta o baja. Sin ninguno de los dos, el precio queda pendiente para ponerlo a mano.
   - Spike con N'PY (Piau-Engaly): la página responde 200 y las tablas de precios vienen en el HTML (adulto, niño, estudiante, senior × "Public" / "No Souci"). Ejemplo: adulto 4 días "Public" = 180 €.
   - Por eso el backend descarga la página, la reduce a texto (unos 9.000 caracteres, céntimos de coste) y se la pasa a Claude con structured outputs, sin necesitar `web_fetch`. Se le pide el **precio adulto, tarifa pública, para `ski_days` días**.
   - Si la página no se puede descargar o no trae precios (webs que los cargan con JavaScript), queda "Pendiente" y se rellena a mano.
@@ -162,7 +163,8 @@ GET    /api/trips/:id/photo               imagen
 GET    /api/trips/:id/participants
 POST   /api/trips/:id/participants        { name }  (devuelve el existente si coincide)
 
-POST   /api/trips/:id/destinations        { mapsUrl, forfaitUrl, participantId }
+POST   /api/trips/:id/destinations        multipart: mapsUrl, forfaitUrl?, forfaitScreenshot?, participantId?
+POST   /api/destinations/:id/forfait-screenshot  multipart: forfaitScreenshot (re-extrae)
 GET    /api/destinations/:id              detalle + alojamientos + combos
 PATCH  /api/destinations/:id              corrección manual
 DELETE /api/destinations/:id              (cascade a alojamientos)

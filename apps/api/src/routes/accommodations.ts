@@ -18,7 +18,7 @@ const createLimit = rateLimit({ max: 30, windowMs: 60 * 60 * 1000 });
 
 async function accommodationDetail(id: string): Promise<AccommodationView> {
   const [row] = await db
-    .select({ a: accommodationColumns, destination: destinations })
+    .select({ a: accommodationColumns, destination: { tripId: destinations.tripId, forfaitPrice: destinations.forfaitPrice } })
     .from(accommodations)
     .innerJoin(destinations, eq(destinations.id, accommodations.destinationId))
     .where(eq(accommodations.id, id));

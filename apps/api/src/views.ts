@@ -11,10 +11,11 @@ import { accommodations, destinations, trips } from "./db/schema.ts";
 // Columnas sin binarios, para listados y detalles
 const { photo: _photo, ...tripColumns } = getTableColumns(trips);
 const { screenshot: _screenshot, ...accommodationColumns } = getTableColumns(accommodations);
-export { accommodationColumns, tripColumns };
+const { forfaitScreenshot: _forfaitScreenshot, ...destinationColumns } = getTableColumns(destinations);
+export { accommodationColumns, destinationColumns, tripColumns };
 
 type TripRow = Omit<typeof trips.$inferSelect, "photo">;
-type DestinationRow = typeof destinations.$inferSelect;
+type DestinationRow = Omit<typeof destinations.$inferSelect, "forfaitScreenshot">;
 type AccommodationRow = Omit<typeof accommodations.$inferSelect, "screenshot">;
 
 export function tripView(t: TripRow): TripSummary {
@@ -69,6 +70,7 @@ export function destinationSummary(
     name: d.name,
     mapsUrl: d.mapsUrl,
     forfaitUrl: d.forfaitUrl,
+    hasForfaitScreenshot: d.forfaitScreenshotMime != null,
     driveMinutes: d.driveMinutes,
     forfaitPrice: d.forfaitPrice,
     forfaitStale: d.forfaitPrice != null && d.forfaitDays !== trip.skiDays,
